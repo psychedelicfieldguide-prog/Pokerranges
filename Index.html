@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>80BB RFI Range Driller</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{--bg:#091410;--felt:#12291c;--felt-hi:#1b3d2a;--raise:#c93030;--raise-glow:rgba(201,48,48,.35);--fold:#2e6db4;--fold-glow:rgba(46,109,180,.35);--gold:#d4a843;--gold-dim:#9a7530;--card-bg:#f4efe5;--text:#e0d8c8;--text-dim:#7a7468;--correct:#27ae60;--wrong:#c0392b;--pair-bg:#b8860b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 35% 25%,rgba(27,61,42,.45) 0%,transparent 55%),radial-gradient(ellipse at 65% 75%,rgba(27,61,42,.3) 0%,transparent 50%),radial-gradient(circle at 50% 50%,rgba(18,41,28,.6) 0%,var(--bg) 70%);pointer-events:none;z-index:0}
+.font-d{font-family:'Oswald',sans-serif}
+.bg-suit{position:fixed;font-size:90px;color:var(--gold);opacity:.025;pointer-events:none;z-index:0}
+.bg-suit:nth-child(1){top:8%;left:5%;animation:bfloat 10s ease-in-out infinite}
+.bg-suit:nth-child(2){top:60%;right:8%;animation:bfloat 12s ease-in-out 2s infinite}
+.bg-suit:nth-child(3){bottom:10%;left:40%;animation:bfloat 9s ease-in-out 4s infinite}
+.bg-suit:nth-child(4){top:30%;right:25%;animation:bfloat 11s ease-in-out 1s infinite;font-size:60px}
+@keyframes bfloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-25px) rotate(12deg)}}
+.playing-card{width:105px;height:148px;background:var(--card-bg);border-radius:10px;position:relative;box-shadow:0 6px 24px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .3s,box-shadow .3s}
+.playing-card:hover{transform:translateY(-3px)}
+.card-corner{position:absolute;display:flex;flex-direction:column;align-items:center;line-height:1}
+.card-corner.tl{top:7px;left:8px}
+.card-corner.br{bottom:7px;right:8px;transform:rotate(180deg)}
+.card-rank{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700}
+.card-suit-s{font-size:14px;margin-top:-2px}
+.card-center{font-size:46px;line-height:1}
+.c-red{color:#b71c1c}.c-blk{color:#1a1a2e}
+.btn-action{padding:16px 44px;font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;letter-spacing:2.5px;border:none;border-radius:12px;cursor:pointer;transition:all .15s;text-transform:uppercase;position:relative;outline:none}
+.btn-action:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.btn-raise{background:var(--raise);color:#fff;box-shadow:0 4px 20px var(--raise-glow)}
+.btn-raise:hover{background:#d94040;transform:translateY(-2px);box-shadow:0 8px 30px var(--raise-glow)}
+.btn-fold{background:var(--fold);color:#fff;box-shadow:0 4px 20px var(--fold-glow)}
+.btn-fold:hover{background:#3a80cc;transform:translateY(-2px);box-shadow:0 8px 30px var(--fold-glow)}
+.btn-action:active{transform:translateY(0)!important}
+.btn-action:disabled{opacity:.4;cursor:default;transform:none!important}
+.key-h{display:inline-block;padding:1px 7px;border-radius:4px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);font-size:11px;font-family:'Oswald',sans-serif;margin-left:8px;vertical-align:middle;letter-spacing:0}
+.pos-tab{padding:7px 15px;border-radius:7px;cursor:pointer;transition:all .2s;font-family:'Oswald',sans-serif;font-weight:500;font-size:13px;letter-spacing:1px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text-dim)}
+.pos-tab:hover{background:rgba(255,255,255,.09);color:var(--text)}
+.pos-tab.active{background:var(--gold);color:#1a1400;border-color:var(--gold);box-shadow:0 0 16px rgba(212,168,67,.25)}
+.mode-btn{padding:6px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--text-dim);transition:all .2s;font-family:'Source Sans 3',sans-serif}
+.mode-btn:hover{color:var(--text);border-color:rgba(255,255,255,.18)}
+.mode-btn.active{background:rgba(212,168,67,.12);border-color:var(--gold-dim);color:var(--gold)}
+.stat-v{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--gold);line-height:1.1}
+.stat-l{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);margin-top:2px}
+.grid-ov{position:fixed;inset:0;background:rgba(5,12,8,.92);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px)}
+.grid-ov.vis{opacity:1;pointer-events:all}
+.rgrid{display:grid;grid-template-columns:28px repeat(13,1fr);grid-template-rows:28px repeat(13,1fr);gap:2px;width:min(92vw,560px)}
+.gc{border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'Oswald',sans-serif;letter-spacing:.5px;transition:all .15s;min-height:0;aspect-ratio:1}
+.gc.raise{background:var(--raise);color:rgba(255,255,255,.9)}
+.gc.fold{background:rgba(255,255,255,.04);color:rgba(255,255,255,.2)}
+.gc.pair-raise{background:var(--pair-bg);color:#fff}
+.gc.hl{outline:2.5px solid var(--gold);outline-offset:-1px;z-index:2;box-shadow:0 0 8px rgba(212,168,67,.4)}
+.gc:hover{filter:brightness(1.3);z-index:1}
+.gh{display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;color:var(--text-dim)}
+.result-b{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%) translateY(8px);padding:4px 18px;border-radius:20px;font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:1.5px;white-space:nowrap;opacity:0;transition:all .3s;pointer-events:none}
+.result-b.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.result-b.ok{background:var(--correct);color:#fff}
+.result-b.no{background:var(--wrong);color:#fff}
+.cards-wrap{transition:opacity .15s,transform .15s}
+@keyframes dealIn{from{transform:translateY(-30px) rotate(-4deg);opacity:0}to{transform:translateY(0) rotate(0);opacity:1}}
+.deal-1{animation:dealIn .28s ease-out forwards}
+.deal-2{animation:dealIn .28s ease-out .08s forwards;opacity:0}
+@keyframes glowG{0%,100%{box-shadow:0 6px 24px rgba(0,0,0,.55)}50%{box-shadow:0 0 30px rgba(39,174,96,.5),0 6px 24px rgba(0,0,0,.55)}}
+@keyframes glowR{0%,100%{box-shadow:0 6px 24px rgba(0,0,0,.55)}50%{box-shadow:0 0 30px rgba(192,57,43,.5),0 6px 24px rgba(0,0,0,.55)}}
+.glow-ok .playing-card{animation:glowG .5s ease}
+.glow-no .playing-card{animation:glowR .5s ease}
+.sprint-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.sprint-fill{height:100%;background:linear-gradient(90deg,var(--raise),var(--gold));border-radius:2px;transition:width .3s linear}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);padding:10px 28px;border-radius:10px;font-weight:600;z-index:200;transition:transform .35s ease;font-family:'Oswald',sans-serif;letter-spacing:1px;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.sprint-end{position:fixed;inset:0;background:rgba(5,12,8,.95);z-index:150;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.sprint-end.vis{opacity:1;pointer-events:all}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(max-width:640px){.playing-card{width:82px;height:115px}.card-rank{font-size:17px}.card-center{font-size:36px}.card-suit-s{font-size:11px}.btn-action{padding:13px 28px;font-size:18px}.stat-v{font-size:20px}.rgrid{width:min(96vw,420px)}.gc{font-size:8px}}
+</style>
+</head>
+<body>
+
+<!-- Background suit symbols -->
+<div class="bg-suit" style="top:8%;left:5%">♠</div>
+<div class="bg-suit" style="top:60%;right:8%">♥</div>
+<div class="bg-suit" style="bottom:10%;left:40%">♦</div>
+<div class="bg-suit" style="top:30%;right:25%;font-size:60px">♣</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Grid Overlay -->
+<div id="gridOv" class="grid-ov" onclick="if(event.target===this)toggleGrid()">
+  <div style="max-width:600px;width:100%;padding:16px">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h2 id="gridTitle" class="font-d text-2xl tracking-wider" style="color:var(--gold)">UTG · RFI</h2>
+        <p id="gridPct" class="text-xs mt-1" style="color:var(--text-dim)"></p>
+      </div>
+      <button onclick="toggleGrid()" class="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition" aria-label="Close grid"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="rgrid" class="rgrid mx-auto"></div>
+    <div class="flex justify-center gap-6 mt-4 text-xs" style="color:var(--text-dim)">
+      <span><span class="inline-block w-3 h-3 rounded-sm mr-1" style="background:var(--raise);vertical-align:middle"></span>Suited Raise</span>
+      <span><span class="inline-block w-3 h-3 rounded-sm mr-1" style="background:var(--pair-bg);vertical-align:middle"></span>Pair Raise</span>
+      <span><span class="inline-block w-3 h-3 rounded-sm mr-1" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);vertical-align:middle"></span>Fold</span>
+    </div>
+    <div id="gridPosStats" class="mt-3 text-center text-xs" style="color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<!-- Sprint End Screen -->
+<div id="sprintEnd" class="sprint-end">
+  <div class="text-center px-6">
+    <h2 class="font-d text-4xl tracking-wider mb-2" style="color:var(--gold)">TIME'S UP</h2>
+    <p class="text-sm mb-8" style="color:var(--text-dim)">60-Second Sprint Results</p>
+    <div class="flex justify-center gap-10 mb-8">
+      <div class="text-center"><div id="seCorrect" class="stat-v">0</div><div class="stat-l">Correct</div></div>
+      <div class="text-center"><div id="seTotal" class="stat-v">0</div><div class="stat-l">Total</div></div>
+      <div class="text-center"><div id="seAcc" class="stat-v">0%</div><div class="stat-l">Accuracy</div></div>
+      <div class="text-center"><div id="seBest" class="stat-v">0</div><div class="stat-l">Best Streak</div></div>
+    </div>
+    <div class="flex gap-4 justify-center">
+      <button onclick="startSprint()" class="btn-action btn-raise" style="font-size:16px;padding:12px 32px">Play Again</button>
+      <button onclick="endSprintScreen()" class="btn-action btn-fold" style="font-size:16px;padding:12px 32px">Free Drill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div class="relative z-10 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5">
+    <div class="flex items-center gap-3">
+      <h1 class="font-d text-lg sm:text-xl tracking-widest" style="color:var(--gold)">80BB RFI DRILLER</h1>
+      <span class="hidden sm:inline text-[10px] tracking-wider" style="color:var(--text-dim)">POKERCOACHING</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleGrid()" class="px-3 py-1.5 rounded-lg border border-white/8 bg-white/4 text-xs font-semibold hover:bg-white/8 transition flex items-center gap-1.5" style="color:var(--text-dim)" aria-label="View range grid"><i class="fas fa-th"></i><span class="hidden sm:inline">RANGE</span></button>
+      <button onclick="resetStats()" class="px-3 py-1.5 rounded-lg border border-white/8 bg-white/4 text-xs font-semibold hover:bg-white/8 transition" style="color:var(--text-dim)" aria-label="Reset statistics"><i class="fas fa-redo"></i></button>
+    </div>
+  </header>
+
+  <!-- Mode Selector -->
+  <div class="flex justify-center gap-2 py-2.5">
+    <button class="mode-btn active" data-mode="free" onclick="setMode('free')">Free Drill</button>
+    <button class="mode-btn" data-mode="sprint" onclick="setMode('sprint')">60s Sprint</button>
+  </div>
+
+  <!-- Sprint Timer Bar -->
+  <div id="sprintBar" class="px-4 sm:px-8 pb-1 hidden">
+    <div class="flex items-center justify-between mb-1">
+      <span class="font-d text-sm tracking-wider" style="color:var(--raise)"><i class="fas fa-bolt mr-1"></i>SPRINT</span>
+      <span id="sprintTime" class="font-d text-lg font-bold" style="color:var(--gold)">60</span>
+    </div>
+    <div class="sprint-bar"><div id="sprintFill" class="sprint-fill" style="width:100%"></div></div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="flex justify-center gap-6 sm:gap-10 py-3">
+    <div class="text-center"><div id="sCorrect" class="stat-v">0</div><div class="stat-l">Correct</div></div>
+    <div class="text-center"><div id="sStreak" class="stat-v">0</div><div class="stat-l">Streak</div></div>
+    <div class="text-center"><div id="sAcc" class="stat-v">--</div><div class="stat-l">Accuracy</div></div>
+    <div class="text-center"><div id="sBest" class="stat-v">0</div><div class="stat-l">Best</div></div>
+  </div>
+
+  <!-- Main Game Area -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4 pb-2">
+    <!-- Cards -->
+    <div id="cardsWrap" class="cards-wrap flex items-end gap-0 mb-5 relative" style="min-height:170px">
+      <div id="card1" class="playing-card deal-1"></div>
+      <div id="card2" class="playing-card deal-2" style="margin-left:-18px"></div>
+      <div id="resultBadge" class="result-b"></div>
+    </div>
+
+    <!-- Hand Name -->
+    <div id="handName" class="font-d text-3xl sm:text-4xl tracking-widest mb-1" style="min-height:40px"></div>
+    <div id="handType" class="text-sm tracking-wider mb-3" style="color:var(--text-dim);min-height:20px"></div>
+
+    <!-- Position Badge -->
+    <div id="posBadge" class="px-5 py-2 rounded-full font-d text-sm tracking-widest mb-7 border" style="background:rgba(212,168,67,.1);border-color:var(--gold-dim);color:var(--gold);min-height:38px;display:flex;align-items:center"></div>
+
+    <!-- Action Buttons -->
+    <div id="actionBtns" class="flex gap-5 sm:gap-7">
+      <button id="btnR" class="btn-action btn-raise" onclick="answer('raise')" aria-label="Raise">RAISE<span class="key-h">R</span></button>
+      <button id="btnF" class="btn-action btn-fold" onclick="answer('fold')" aria-label="Fold">FOLD<span class="key-h">F</span></button>
+    </div>
+
+    <!-- Continue hint -->
+    <div id="continueHint" class="hidden font-d text-sm tracking-wider mt-6" style="color:var(--text-dim)">
+      <span class="key-h" style="margin-left:0">SPACE</span> or click to continue
+    </div>
+  </main>
+
+  <!-- Position Selector -->
+  <footer class="py-3 border-t border-white/5">
+    <div class="flex justify-center gap-1.5 sm:gap-2 flex-wrap px-3">
+      <button class="pos-tab active" data-pos="ALL" onclick="setPos('ALL')">ALL</button>
+      <button class="pos-tab" data-pos="UTG" onclick="setPos('UTG')">UTG</button>
+      <button class="pos-tab" data-pos="LJ" onclick="setPos('LJ')">LJ</button>
+      <button class="pos-tab" data-pos="HJ" onclick="setPos('HJ')">HJ</button>
+      <button class="pos-tab" data-pos="CO" onclick="setPos('CO')">CO</button>
+      <button class="pos-tab" data-pos="BTN" onclick="setPos('BTN')">BTN</button>
+      <button class="pos-tab" data-pos="SB" onclick="setPos('SB')">SB</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ========================================
+   常量与范围定义
+   ======================================== */
+const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const SUITS = ['♠','♥','♦','♣'];
+const POSITIONS = ['UTG','LJ','HJ','CO','BTN','SB'];
+
+// 80BB RFI 范围定义（基于 PokerCoaching 图表）
+const RANGE_DEFS = {
+  'UTG': '55+,ATs+,A5s,A4s,K9s+,KQs,QTs+,JTs,T9s,98s,87s,76s,AKo,AQo',
+  'LJ':  '22+,A2s+,K9s+,Q9s+,J9s+,T9s,98s,87s,76s,65s,AKo,AQo,AJo,KQo',
+  'HJ':  '22+,A2s+,K8s+,Q8s+,J8s+,T7s+,97s+,87s,76s,65s,54s,A9o+,KTo+,QTo+,JTo',
+  'CO':  '22+,A2s+,K2s+,Q5s+,J5s+,T5s+,95s+,84s+,75s+,64s+,54s,43s,A5o+,K8o+,Q8o+,J8o+,T9o',
+  'BTN': '22+,A2s+,K2s+,Q2s+,J2s+,T2s+,92s+,82s+,72s+,62s+,52s+,42s+,32s,A2o+,K5o+,Q8o+,J8o+,T8o+,98o',
+  'SB':  '22+,A2s+,K4s+,Q6s+,J7s+,T6s+,96s+,85s+,75s,65s,54s,A7o+,K9o+,QTo+,JTo'
+};
+
+/* ========================================
+   范围解析
+   ======================================== */
+function expandRange(def) {
+  const hands = new Set();
+  const tokens = def.split(',').map(s => s.trim()).filter(Boolean);
+  for (const tok of tokens) {
+    if (tok.endsWith('+')) {
+      const base = tok.slice(0, -1);
+      const r1 = base[0], r2 = base[1], type = base[2] || '';
+      const i1 = RANKS.indexOf(r1), i2 = RANKS.indexOf(r2);
+      if (!type) {
+        // 对子+: 55+ → AA到55
+        for (let i = 0; i <= i2; i++) hands.add(RANKS[i] + RANKS[i]);
+      } else {
+        // 同花/杂色+: ATs+ → ATs,AJs,AQs,AKs
+        for (let j = i2; j > i1; j--) hands.add(RANKS[i1] + RANKS[j] + type);
+      }
+    } else {
+      hands.add(tok);
+    }
+  }
+  return hands;
+}
+
+// 预计算所有位置的范围集合和矩阵
+const ranges = {};
+const matrices = {};
+for (const pos of POSITIONS) {
+  ranges[pos] = expandRange(RANGE_DEFS[pos]);
+  const m = Array.from({length: 13}, () => Array(13).fill(false));
+  for (const h of ranges[pos]) {
+    const [r, c] = handToCell(h);
+    m[r][c] = true;
+  }
+  matrices[pos] = m;
+}
+
+// 将手牌字符串转为网格坐标 [row, col]
+function handToCell(h) {
+  if (h.length === 2) { const i = RANKS.indexOf(h[0]); return [i, i]; }
+  const i1 = RANKS.indexOf(h[0]), i2 = RANKS.indexOf(h[1]);
+  return h[2] === 's' ? [i1, i2] : [i2, i1];
+}
+
+/* ========================================
+   游戏状态
+   ======================================== */
+let S = {
+  mode: 'free',
+  posFilter: 'ALL',
+  curHand: null,    // { hand, card1, card2, isRaise, position }
+  answered: false,
+  correct: 0,
+  total: 0,
+  streak: 0,
+  best: 0,
+  sprintTime: 60,
+  sprintTimer: null,
+  sprintCorrect: 0,
+  sprintTotal: 0,
+  sprintBest: 0,
+  perPos: {}
+};
+for (const p of POSITIONS) S.perPos[p] = { correct: 0, total: 0 };
+
+/* ========================================
+   工具函数
+   ======================================== */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function randPos() {
+  if (S.posFilter === 'ALL') return POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+  return S.posFilter;
+}
+
+function renderCard(rank, suit) {
+  const red = suit === '♥' || suit === '♦';
+  const cls = red ? 'c-red' : 'c-blk';
+  return `<div class="card-corner tl ${cls}"><span class="card-rank">${rank}</span><span class="card-suit-s">${suit}</span></div>
+    <div class="card-center ${cls}">${suit}</div>
+    <div class="card-corner br ${cls}"><span class="card-rank">${rank}</span><span class="card-suit-s">${suit}</span></div>`;
+}
+
+/* ========================================
+   生成手牌（50% Raise / 50% Fold 平衡）
+   ======================================== */
+function genHand(position) {
+  const range = ranges[position];
+  const raiseList = [...range];
+  const foldList = [];
+  for (let i = 0; i < 13; i++) {
+    for (let j = i; j < 13; j++) {
+      if (i === j) {
+        const h = RANKS[i] + RANKS[i];
+        if (!range.has(h)) foldList.push(h);
+      } else {
+        const hs = RANKS[i] + RANKS[j] + 's';
+        const ho = RANKS[i] + RANKS[j] + 'o';
+        if (!range.has(hs)) foldList.push(hs);
+        if (!range.has(ho)) foldList.push(ho);
+      }
+    }
+  }
+  const isRaise = Math.random() < 0.5;
+  const pool = isRaise ? raiseList : foldList;
+  const hand = pool[Math.floor(Math.random() * pool.length)];
+
+  // 分配花色
+  let c1, c2;
+  if (hand.length === 2) {
+    const ss = shuffle(SUITS).slice(0, 2);
+    c1 = { rank: hand[0], suit: ss[0] }; c2 = { rank: hand[1], suit: ss[1] };
+  } else if (hand[2] === 's') {
+    const s = SUITS[Math.floor(Math.random() * 4)];
+    c1 = { rank: hand[0], suit: s }; c2 = { rank: hand[1], suit: s };
+  } else {
+    const ss = shuffle(SUITS).slice(0, 2);
+    c1 = { rank: hand[0], suit: ss[0] }; c2 = { rank: hand[1], suit: ss[1] };
+  }
+  return { hand, card1: c1, card2: c2, isRaise: range.has(hand), position };
+}
+
+/* ========================================
+   显示手牌
+   ======================================== */
+function showHand() {
+  S.answered = false;
+  S.curHand = genHand(randPos());
+  const { hand, card1, card2, position } = S.curHand;
+
+  // 卡片动画
+  const wrap = document.getElementById('cardsWrap');
+  wrap.style.opacity = '0';
+  wrap.style.transform = 'translateY(-8px)';
+  wrap.classList.remove('glow-ok', 'glow-no');
+
+  setTimeout(() => {
+    const c1el = document.getElementById('card1');
+    const c2el = document.getElementById('card2');
+    c1el.innerHTML = renderCard(card1.rank, card1.suit);
+    c2el.innerHTML = renderCard(card2.rank, card2.suit);
+    c1el.className = 'playing-card deal-1';
+    c2el.className = 'playing-card deal-2';
+    c2el.style.marginLeft = '-18px';
+
+    // 手牌名称
+    document.getElementById('handName').textContent = hand;
+    const typeMap = { 's': 'Suited', 'o': 'Offsuit' };
+    const typeText = hand.length === 2 ? 'Pocket Pair' : (typeMap[hand[2]] || '');
+    document.getElementById('handType').textContent = typeText;
+
+    // 位置
+    document.getElementById('posBadge').textContent = position + ' · RFI';
+
+    // 隐藏结果标签和继续提示
+    const rb = document.getElementById('resultBadge');
+    rb.classList.remove('show', 'ok', 'no');
+    document.getElementById('continueHint').classList.add('hidden');
+
+    // 启用按钮
+    document.getElementById('btnR').disabled = false;
+    document.getElementById('btnF').disabled = false;
+
+    wrap.style.opacity = '1';
+    wrap.style.transform = 'translateY(0)';
+  }, 150);
+}
+
+/* ========================================
+   回答处理
+   ======================================== */
+function answer(action) {
+  if (S.answered || !S.curHand) return;
+  S.answered = true;
+
+  const correct = (action === 'raise') === S.curHand.isRaise;
+  const wrap = document.getElementById('cardsWrap');
+  const rb = document.getElementById('resultBadge');
+
+  // 禁用按钮
+  document.getElementById('btnR').disabled = true;
+  document.getElementById('btnF').disabled = true;
+
+  // 视觉反馈
+  if (correct) {
+    wrap.classList.add('glow-ok');
+    rb.textContent = 'CORRECT';
+    rb.className = 'result-b ok show';
+    S.correct++;
+    S.streak++;
+    if (S.streak > S.best) S.best = S.streak;
+    if (S.mode === 'sprint') { S.sprintCorrect++; if (S.streak > S.sprintBest) S.sprintBest = S.streak; }
+  } else {
+    wrap.classList.add('glow-no');
+    const correctAction = S.curHand.isRaise ? 'RAISE' : 'FOLD';
+    rb.textContent = correctAction;
+    rb.className = 'result-b no show';
+    S.streak = 0;
+  }
+  S.total++;
+  S.perPos[S.curHand.position].total++;
+  if (correct) S.perPos[S.curHand.position].correct++;
+  if (S.mode === 'sprint') S.sprintTotal++;
+
+  updateStats();
+
+  // 显示继续提示
+  document.getElementById('continueHint').classList.remove('hidden');
+
+  // Free 模式下1.2秒后自动下一手
+  if (S.mode === 'free') {
+    setTimeout(() => { if (S.answered) showHand(); }, 1200);
+  }
+}
+
+/* ========================================
+   统计更新
+   ======================================== */
+function updateStats() {
+  document.getElementById('sCorrect').textContent = S.correct;
+  document.getElementById('sStreak').textContent = S.streak;
+  document.getElementById('sAcc').textContent = S.total ? Math.round(S.correct / S.total * 100) + '%' : '--';
+  document.getElementById('sBest').textContent = S.best;
+}
+
+/* ========================================
+   位置选择
+   ======================================== */
+function setPos(pos) {
+  S.posFilter = pos;
+  document.querySelectorAll('.pos-tab').forEach(t => t.classList.toggle('active', t.dataset.pos === pos));
+  showHand();
+}
+
+/* ========================================
+   模式切换
+   ======================================== */
+function setMode(mode) {
+  if (S.mode === 'sprint' && mode !== 'sprint') clearSprintTimer();
+  S.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('sprintBar').classList.toggle('hidden', mode !== 'sprint');
+  document.getElementById('sprintEnd').classList.remove('vis');
+  if (mode === 'sprint') startSprint();
+  else showHand();
+}
+
+/* ========================================
+   冲刺模式
+   ======================================== */
+function startSprint() {
+  clearSprintTimer();
+  S.sprintTime = 60;
+  S.sprintCorrect = 0;
+  S.sprintTotal = 0;
+  S.sprintBest = 0;
+  S.correct = 0; S.total = 0; S.streak = 0; S.best = 0;
+  for (const p of POSITIONS) S.perPos[p] = { correct: 0, total: 0 };
+  updateStats();
+  document.getElementById('sprintEnd').classList.remove('vis');
+  document.getElementById('sprintTime').textContent = '60';
+  document.getElementById('sprintFill').style.width = '100%';
+
+  S.sprintTimer = setInterval(() => {
+    S.sprintTime--;
+    document.getElementById('sprintTime').textContent = S.sprintTime;
+    document.getElementById('sprintFill').style.width = (S.sprintTime / 60 * 100) + '%';
+    if (S.sprintTime <= 10) document.getElementById('sprintTime').style.color = 'var(--raise)';
+    else document.getElementById('sprintTime').style.color = 'var(--gold)';
+    if (S.sprintTime <= 0) endSprint();
+  }, 1000);
+
+  showHand();
+}
+
+function endSprint() {
+  clearSprintTimer();
+  document.getElementById('seCorrect').textContent = S.sprintCorrect;
+  document.getElementById('seTotal').textContent = S.sprintTotal;
+  document.getElementById('seAcc').textContent = S.sprintTotal ? Math.round(S.sprintCorrect / S.sprintTotal * 100) + '%' : '0%';
+  document.getElementById('seBest').textContent = S.sprintBest;
+  document.getElementById('sprintEnd').classList.add('vis');
+}
+
+function endSprintScreen() {
+  document.getElementById('sprintEnd').classList.remove('vis');
+  setMode('free');
+}
+
+function clearSprintTimer() {
+  if (S.sprintTimer) { clearInterval(S.sprintTimer); S.sprintTimer = null; }
+}
+
+/* ========================================
+   范围网格
+   ======================================== */
+function toggleGrid() {
+  const ov = document.getElementById('gridOv');
+  if (ov.classList.contains('vis')) { ov.classList.remove('vis'); return; }
+  const pos = S.curHand ? S.curHand.position : 'UTG';
+  renderGrid(pos);
+  ov.classList.add('vis');
+}
+
+function renderGrid(position) {
+  document.getElementById('gridTitle').textContent = position + ' · RFI';
+  const m = matrices[position];
+  const range = ranges[position];
+  const count = [...range].length;
+  document.getElementById('gridPct').textContent = count + ' combos · ' + Math.round(count / 169 * 100) + '% of hands';
+
+  // 位置准确率
+  const ps = S.perPos[position];
+  document.getElementById('gridPosStats').textContent = ps.total ? `Your accuracy: ${ps.total ? Math.round(ps.correct / ps.total * 100) : 0}% (${ps.correct}/${ps.total})` : 'No data yet for this position';
+
+  const grid = document.getElementById('rgrid');
+  grid.innerHTML = '';
+
+  // 左上角空白
+  grid.appendChild(document.createElement('div'));
+
+  // 顶部标题行
+  for (let c = 0; c < 13; c++) {
+    const h = document.createElement('div');
+    h.className = 'gh';
+    h.textContent = RANKS[c];
+    grid.appendChild(h);
+  }
+
+  // 数据行
+  for (let r = 0; r < 13; r++) {
+    // 左侧标题
+    const lh = document.createElement('div');
+    lh.className = 'gh';
+    lh.textContent = RANKS[r];
+    grid.appendChild(lh);
+
+    for (let c = 0; c < 13; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'gc';
+
+      // 确定手牌名称
+      let label, isPair = false;
+      if (r === c) {
+        label = RANKS[r] + RANKS[c];
+        isPair = true;
+      } else if (r < c) {
+        label = RANKS[r] + RANKS[c];
+      } else {
+        label = RANKS[c] + RANKS[r];
+      }
+
+      cell.textContent = label;
+      cell.title = label + (r === c ? '' : (r < c ? 's' : 'o'));
+
+      if (m[r][c]) {
+        cell.classList.add(isPair ? 'pair-raise' : 'raise');
+      } else {
+        cell.classList.add('fold');
+      }
+
+      // 高亮当前手牌
+      if (S.curHand) {
+        const [hr, hc] = handToCell(S.curHand.hand);
+        if (hr === r && hc === c) cell.classList.add('hl');
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+/* ========================================
+   重置统计
+   ======================================== */
+function resetStats() {
+  S.correct = 0; S.total = 0; S.streak = 0; S.best = 0;
+  for (const p of POSITIONS) S.perPos[p] = { correct: 0, total: 0 };
+  updateStats();
+  showToast('Stats reset', 'var(--text-dim)');
+}
+
+/* ========================================
+   Toast 提示
+   ======================================== */
+function showToast(msg, bg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = bg || 'rgba(30,30,30,.9)';
+  t.style.color = '#fff';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ========================================
+   键盘事件
+   ======================================== */
+document.addEventListener('keydown', e => {
+  // 如果网格打开，按 Escape 关闭
+  if (document.getElementById('gridOv').classList.contains('vis')) {
+    if (e.key === 'Escape' || e.key === 'g') toggleGrid();
+    return;
+  }
+  // 如果冲刺结束画面打开，按空格重新开始
+  if (document.getElementById('sprintEnd').classList.contains('vis')) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); startSprint(); }
+    return;
+  }
+
+  if (e.key === 'r' || e.key === 'R') { e.preventDefault(); answer('raise'); }
+  else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); answer('fold'); }
+  else if (e.key === ' ') {
+    e.preventDefault();
+    if (S.answered && S.mode === 'free') showHand();
+  }
+  else if (e.key === 'g' || e.key === 'G') toggleGrid();
+  else if (e.key >= '1' && e.key <= '7') {
+    // 数字键快速切换位置: 1=ALL, 2=UTG, 3=LJ, ..., 7=SB
+    const posKeys = ['ALL', 'UTG', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    setPos(posKeys[parseInt(e.key) - 1]);
+  }
+});
+
+// 点击卡片区域也可继续
+document.getElementById('cardsWrap').addEventListener('click', () => {
+  if (S.answered && S.mode === 'free') showHand();
+});
+
+/* ========================================
+   初始化
+   ======================================== */
+showHand();
+</script>
+</body>
+</html>
